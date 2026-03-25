@@ -19,7 +19,7 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, Arial, sans-serif;
-  background: radial-gradient(circle at top, #16234a 0%, var(--bg) 50%);
+  background: linear-gradient(180deg, #0f1730 0%, #0b1020 45%, #090d1a 100%);
   color: var(--text);
 }
 
@@ -77,14 +77,21 @@ input::placeholder {
 }
 
 button {
-  background: linear-gradient(135deg, #4b7dff, var(--primary));
+  background: var(--primary);
   color: white;
   border: none;
   cursor: pointer;
   font-weight: 700;
+  transition: background-color .15s ease, transform .1s ease;
 }
 
-button:hover { filter: brightness(1.08); }
+button:hover {
+  background: #6b98ff;
+}
+
+button:active {
+  transform: translateY(1px);
+}
 
 .alert {
   margin: .6rem 0;
