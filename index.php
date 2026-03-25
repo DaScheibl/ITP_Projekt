@@ -144,6 +144,23 @@ if ($user && isset($_POST['action'])) {
             $messages[] = 'Patient wurde verschoben.';
             $activeTab = 'suche';
             break;
+
+        case 'transfer_group':
+            $newDoctorId = (int) ($_POST['new_arzt_id'] ?? 0);
+            $rawIds = trim($_POST['patient_ids'] ?? '');
+            $ids = array_values(array_filter(array_map('intval', explode(',', $rawIds))));
+            if (!$ids || $newDoctorId <= 0) {
+                $errors[] = 'Ungültige Transferdaten.';
+                break;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $sql = "UPDATE patient SET arzt_id = ? WHERE erledigt = 0 AND id IN ($placeholders)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_merge([$newDoctorId], $ids));
+            $messages[] = 'Offene Patienteneinträge wurden verschoben.';
+            $activeTab = 'suche';
+            break;
     }
 }
 
@@ -214,11 +231,67 @@ $stmt = $pdo->prepare($searchSql);
 $stmt->execute($params);
 $searchPatients = $stmt->fetchAll();
 
-$patientDetailsStmt = $pdo->prepare('SELECT pl.patient_id, l.bezeichnung, l.preis, pl.kostentraeger, pl.datum, a.name AS arzt_name
-    FROM patient_leistung pl
-    JOIN leistung l ON l.id = pl.leistung_id
-    JOIN arzt a ON a.id = pl.arzt_id
-    WHERE pl.patient_id = :patient_id');
+$groupedPatients = [];
+foreach ($searchPatients as $patient) {
+    $key = strtolower(trim($patient['vorname'])) . '|' .
+        strtolower(trim($patient['nachname'])) . '|' .
+        strtolower(trim((string) $patient['strasse'])) . '|' .
+        strtolower(trim((string) $patient['hausnummer'])) . '|' .
+        strtolower(trim((string) $patient['plz'])) . '|' .
+        strtolower(trim((string) $patient['ort']));
+
+    if (!isset($groupedPatients[$key])) {
+        $groupedPatients[$key] = [
+            'vorname' => $patient['vorname'],
+            'nachname' => $patient['nachname'],
+            'arzt_name' => $patient['arzt_name'],
+            'arzt_id' => (int) $patient['arzt_id'],
+            'all_done' => true,
+            'patient_ids' => [],
+            'open_patient_ids' => [],
+        ];
+    }
+
+    $groupedPatients[$key]['patient_ids'][] = (int) $patient['id'];
+
+    if ((int) $patient['erledigt'] === 0) {
+        $groupedPatients[$key]['all_done'] = false;
+        $groupedPatients[$key]['open_patient_ids'][] = (int) $patient['id'];
+    }
+
+    if ((int) $groupedPatients[$key]['arzt_id'] !== (int) $patient['arzt_id']) {
+        $groupedPatients[$key]['arzt_name'] = 'Mehrere Ärzte';
+    }
+}
+
+$patientDetailsByGroup = [];
+if ($groupedPatients) {
+    $allIds = [];
+    foreach ($groupedPatients as $group) {
+        $allIds = array_merge($allIds, $group['patient_ids']);
+    }
+    $allIds = array_values(array_unique($allIds));
+    if ($allIds) {
+        $placeholders = implode(',', array_fill(0, count($allIds), '?'));
+        $sql = "SELECT pl.patient_id, l.bezeichnung, l.preis, pl.kostentraeger, pl.datum, a.name AS arzt_name
+                FROM patient_leistung pl
+                JOIN leistung l ON l.id = pl.leistung_id
+                JOIN arzt a ON a.id = pl.arzt_id
+                WHERE pl.patient_id IN ($placeholders)
+                ORDER BY pl.datum DESC";
+        $detailStmt = $pdo->prepare($sql);
+        $detailStmt->execute($allIds);
+        $allDetails = $detailStmt->fetchAll();
+
+        foreach ($groupedPatients as $key => $group) {
+            $idLookup = array_flip($group['patient_ids']);
+            $patientDetailsByGroup[$key] = array_values(array_filter(
+                $allDetails,
+                static fn(array $detail): bool => isset($idLookup[(int) $detail['patient_id']])
+            ));
+        }
+    }
+}
 ?>
 <!doctype html>
 <html lang="de">
@@ -318,36 +391,32 @@ $patientDetailsStmt = $pdo->prepare('SELECT pl.patient_id, l.bezeichnung, l.prei
             <button type="submit">Suchen</button>
         </form>
 
-        <?php foreach ($searchPatients as $patient): ?>
+        <?php foreach ($groupedPatients as $groupKey => $patient): ?>
             <article class="patient-card stacked">
                 <div>
                     <strong><?= htmlspecialchars($patient['vorname'] . ' ' . $patient['nachname']) ?></strong>
-                    <span class="badge <?= (int) $patient['erledigt'] === 1 ? 'done' : 'open' ?>">
-                        <?= (int) $patient['erledigt'] === 1 ? 'Erledigt' : 'Offen' ?>
+                    <span class="badge <?= $patient['all_done'] ? 'done' : 'open' ?>">
+                        <?= $patient['all_done'] ? 'Erledigt' : 'Offen' ?>
                     </span>
                     <p>Aktueller Arzt: <?= htmlspecialchars($patient['arzt_name']) ?></p>
                 </div>
-
-                <?php
-                $patientDetailsStmt->execute(['patient_id' => $patient['id']]);
-                $leistungen = $patientDetailsStmt->fetchAll();
-                ?>
                 <details>
                     <summary>Leistungen anzeigen</summary>
                     <ul>
+                        <?php $leistungen = $patientDetailsByGroup[$groupKey] ?? []; ?>
                         <?php foreach ($leistungen as $leistung): ?>
                             <li><?= htmlspecialchars($leistung['datum']) ?> - <?= htmlspecialchars($leistung['bezeichnung']) ?> (<?= number_format((float) $leistung['preis'], 2, ',', '.') ?>€, <?= htmlspecialchars($leistung['kostentraeger']) ?>, Arzt: <?= htmlspecialchars($leistung['arzt_name']) ?>)</li>
                         <?php endforeach; ?>
                     </ul>
                 </details>
 
-                <?php if ((int) $patient['erledigt'] === 0): ?>
+                <?php if (!$patient['all_done']): ?>
                     <form method="post" class="transfer-form">
-                        <input type="hidden" name="action" value="transfer_patient">
-                        <input type="hidden" name="patient_id" value="<?= (int) $patient['id'] ?>">
+                        <input type="hidden" name="action" value="transfer_group">
+                        <input type="hidden" name="patient_ids" value="<?= htmlspecialchars(implode(',', $patient['open_patient_ids'])) ?>">
                         <select name="new_arzt_id" required>
                             <?php foreach ($doctors as $doctor): ?>
-                                <option value="<?= (int) $doctor['id'] ?>" <?= (int) $doctor['id'] === (int) $patient['arzt_id'] ? 'selected' : '' ?>>
+                                <option value="<?= (int) $doctor['id'] ?>" <?= ((int) $doctor['id'] === (int) $patient['arzt_id'] && $patient['arzt_name'] !== 'Mehrere Ärzte') ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($doctor['name']) ?>
                                 </option>
                             <?php endforeach; ?>
