@@ -1,0 +1,84 @@
+:root {
+  --bg: #f3f5f9;
+  --primary: #2f6bff;
+  --text: #1e1f24;
+  --card: #fff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+.auth-body { display: grid; place-items: center; min-height: 100vh; }
+.auth-card, .container {
+  width: min(1100px, 92vw);
+}
+.auth-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+.form-grid { display: grid; gap: 1rem; }
+.form-grid.two-cols { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+label { display: grid; gap: .4rem; font-weight: 600; font-size: .95rem; }
+input, select, button {
+  border: 1px solid #d5d9e2;
+  border-radius: 10px;
+  padding: .7rem .8rem;
+  font: inherit;
+}
+button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+button:hover { opacity: .9; }
+.alert { margin: .6rem 0; padding: .8rem; border-radius: 10px; }
+.alert.error { background: #ffe6e6; color: #9d1f1f; }
+.alert.success { background: #e8f9eb; color: #165f21; }
+.alert.warning { background: #fff6d8; color: #7e6210; }
+.inline-form { margin-top: .6rem; }
+.topbar {
+  background: white;
+  border-bottom: 1px solid #e4e8f0;
+  padding: 1rem 4vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logout { text-decoration: none; font-weight: 700; color: var(--primary); }
+.container { margin: 2rem auto; }
+.tabs { display: flex; gap: .8rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.tab {
+  text-decoration: none;
+  color: #445;
+  background: #e7ebf7;
+  padding: .6rem .9rem;
+  border-radius: 999px;
+}
+.tab.active { background: var(--primary); color: white; }
+.panel { display: none; background: var(--card); border-radius: 14px; padding: 1.2rem; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+.panel.show { display: block; }
+.patient-card {
+  margin: .8rem 0;
+  background: #fafbfe;
+  border: 1px solid #e5e9f5;
+  border-radius: 12px;
+  padding: .9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.patient-card.stacked { display: grid; }
+.badge { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .85rem; font-weight: 700; }
+.badge.done { background: #dff4e2; color: #1c6a2a; }
+.badge.open { background: #dce7ff; color: #244fbc; }
+.search-row { display: flex; gap: .6rem; margin-bottom: 1rem; }
+.search-row input { flex: 1; }
+.transfer-form { display: flex; gap: .6rem; }
