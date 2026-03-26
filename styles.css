@@ -215,3 +215,21 @@ summary {
   display: flex;
   gap: .6rem;
 }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: .5rem;
+  margin-bottom: .8rem;
+}
+
+th, td {
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  padding: .55rem .4rem;
+}
+
+th {
+  color: #b9c8f3;
+  font-weight: 700;
+}

@@ -128,6 +128,10 @@ Beim Start werden folgende Tabellen erzeugt:
 - Zeigt Patienten, bei denen mindestens eine Leistung des eingeloggten Arztes noch `erledigt = 0` ist.
 - Button „Erledigt abhaken“ setzt **alle offenen Leistungen dieses Arztes für den Patienten** auf erledigt.
 - Der Patient wird **nicht gelöscht**, nur die Leistungs-Statuswerte werden aktualisiert.
+- Zusätzliche Rechnungsfunktionen:
+  - **Gesamte Rechnungsliste** (Button): zeigt alle Leistungen des aktuell eingeloggten Arztes.
+  - **Rechnung Patient** (Button pro Patient): zeigt alle Leistungen des gewählten Patienten.
+  - Beide Rechnungen enthalten getrennte Summen für `selbstzahler` und `krankenkasse`.
 
 ### 7.2 Leistung hinzufügen (`add_service`)
 - Speichert neue Leistung in Tabelle `leistung`.
