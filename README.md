@@ -71,7 +71,6 @@ Beim Start werden folgende Tabellen erzeugt:
 - `ort_id` (FK -> `ort.id`)
 - `arzt_id` (FK -> `arzt.id`)
 - `vorname`, `nachname`, `strasse`, `hausnummer`
-- `erledigt` (0/1)
 - `created_at`
 
 ### `leistung`
@@ -86,6 +85,7 @@ Beim Start werden folgende Tabellen erzeugt:
 - `arzt_id` (FK -> `arzt.id`)
 - `datum`
 - `kostentraeger` (`krankenkasse` oder `selbstzahler`)
+- `erledigt` (0/1 pro Leistung)
 
 ---
 
@@ -125,9 +125,9 @@ Beim Start werden folgende Tabellen erzeugt:
 ## 7) Dashboard-Funktionen im Detail
 
 ### 7.1 Offene Patienten
-- Zeigt nur Patienten des eingeloggten Arztes mit `erledigt = 0`.
-- Button „Erledigt abhaken“ setzt `patient.erledigt = 1`.
-- Patient wird **nicht gelöscht**, nur als erledigt markiert.
+- Zeigt Patienten, bei denen mindestens eine Leistung des eingeloggten Arztes noch `erledigt = 0` ist.
+- Button „Erledigt abhaken“ setzt **alle offenen Leistungen dieses Arztes für den Patienten** auf erledigt.
+- Der Patient wird **nicht gelöscht**, nur die Leistungs-Statuswerte werden aktualisiert.
 
 ### 7.2 Leistung hinzufügen (`add_service`)
 - Speichert neue Leistung in Tabelle `leistung`.
@@ -137,18 +137,18 @@ Beim Start werden folgende Tabellen erzeugt:
 - Formular enthält Patientendaten + Leistung + Kostenträger.
 - Ablauf in einer Transaktion:
   1. Ort suchen (`plz + ort`) oder neu anlegen
-  2. Patient anlegen
-  3. Verknüpfung in `patient_leistung` schreiben (mit Datum + Kostenträger)
+  2. Existierenden Patienten (gleiche Stammdaten) suchen; falls nicht vorhanden neu anlegen
+  3. Neue Leistung in `patient_leistung` schreiben (mit Datum + Kostenträger + `erledigt = 0`)
 - Bei Fehler: Rollback.
 
 ### 7.4 Suche & Transfer
 - Suchfeld filtert auf Vorname/Nachname.
-- Datensätze werden pro Person gruppiert (Name + Adresse + Ort), damit identische Patienten nicht mehrfach als Karte erscheinen.
-- Unter „Leistungen anzeigen“ werden alle Leistungen der gruppierten Datensätze angezeigt.
-- Wenn Gruppe komplett erledigt ist:
+- Pro Patient-ID wird genau eine Karte angezeigt.
+- Unter „Leistungen anzeigen“ werden alle Leistungen dieses Patienten inkl. Status (Offen/Erledigt) angezeigt.
+- Wenn alle Leistungen erledigt sind:
   - nur Anzeige, kein Transfer möglich.
-- Wenn Gruppe offene Einträge hat:
-  - Transfer ist möglich (`transfer_group`), verschiebt alle offenen Einträge zur gewählten `arzt_id`.
+- Wenn offene Leistungen vorhanden sind:
+  - Transfer ist möglich (`transfer_group`), verschiebt alle offenen Leistungen zur gewählten `arzt_id`.
 
 ---
 
