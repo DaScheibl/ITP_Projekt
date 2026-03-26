@@ -321,7 +321,7 @@ if ($groupedPatients) {
     }
 }
 
-$showInvoiceAll = isset($_GET['invoice_all']) && $_GET['invoice_all'] === '1';
+$showInvoiceAll = $activeTab === 'rechnung';
 $invoicePatientId = (int) ($_GET['invoice_patient_id'] ?? 0);
 
 $invoiceAllData = [];
@@ -380,13 +380,11 @@ if ($invoicePatientId > 0) {
         <a class="tab <?= $activeTab === 'offen' ? 'active' : '' ?>" href="?tab=offen">Offene Patienten</a>
         <a class="tab <?= $activeTab === 'patient-hinzufuegen' ? 'active' : '' ?>" href="?tab=patient-hinzufuegen">Patient hinzufügen</a>
         <a class="tab <?= $activeTab === 'suche' ? 'active' : '' ?>" href="?tab=suche">Suche & Transfer</a>
+        <a class="tab <?= $activeTab === 'rechnung' ? 'active' : '' ?>" href="?tab=rechnung">Rechnung (Alle Patienten)</a>
     </nav>
 
     <section class="panel <?= $activeTab === 'offen' ? 'show' : '' ?>">
         <h2>Offene Patienten</h2>
-        <div style="margin-bottom: 1rem;">
-            <a class="tab" href="?tab=offen&invoice_all=1">Gesamte Rechnungsliste anzeigen</a>
-        </div>
         <?php if (!$offenePatienten): ?>
             <p>Keine offenen Patienten vorhanden.</p>
         <?php endif; ?>
@@ -401,103 +399,8 @@ if ($invoicePatientId > 0) {
                     <input type="hidden" name="patient_id" value="<?= (int) $patient['id'] ?>">
                     <button type="submit">Erledigt abhaken</button>
                 </form>
-                <a class="tab" href="?tab=offen&invoice_patient_id=<?= (int) $patient['id'] ?>">Rechnung Patient</a>
             </article>
         <?php endforeach; ?>
-
-        <?php if ($showInvoiceAll): ?>
-            <article class="patient-card stacked">
-                <h3>Rechnungsliste für alle Patienten (Arzt: <?= htmlspecialchars($user['name']) ?>)</h3>
-                <?php
-                $sumSelbst = 0.0;
-                $sumKasse = 0.0;
-                ?>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Patient</th>
-                            <th>Datum</th>
-                            <th>Leistung</th>
-                            <th>Kostenträger</th>
-                            <th>Betrag</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($invoiceAllData as $row): ?>
-                            <?php
-                            $preis = (float) $row['preis'];
-                            if ($row['kostentraeger'] === 'selbstzahler') {
-                                $sumSelbst += $preis;
-                            } else {
-                                $sumKasse += $preis;
-                            }
-                            ?>
-                            <tr>
-                                <td><?= htmlspecialchars($row['vorname'] . ' ' . $row['nachname']) ?></td>
-                                <td><?= htmlspecialchars($row['datum']) ?></td>
-                                <td><?= htmlspecialchars($row['bezeichnung']) ?></td>
-                                <td><?= htmlspecialchars($row['kostentraeger']) ?></td>
-                                <td><?= number_format($preis, 2, ',', '.') ?> €</td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-                <p><strong>Summe Selbstzahler:</strong> <?= number_format($sumSelbst, 2, ',', '.') ?> €</p>
-                <p><strong>Summe Krankenkasse:</strong> <?= number_format($sumKasse, 2, ',', '.') ?> €</p>
-                <p><strong>Gesamtsumme:</strong> <?= number_format($sumSelbst + $sumKasse, 2, ',', '.') ?> €</p>
-            </article>
-        <?php endif; ?>
-
-        <?php if ($invoicePatientId > 0): ?>
-            <article class="patient-card stacked">
-                <h3>Rechnung für Patient</h3>
-                <?php if (!$invoicePatientData): ?>
-                    <p>Keine Leistungsdaten gefunden.</p>
-                <?php else: ?>
-                    <p>
-                        <strong>Patient:</strong>
-                        <?= htmlspecialchars($invoicePatientData[0]['vorname'] . ' ' . $invoicePatientData[0]['nachname']) ?>
-                    </p>
-                    <?php
-                    $sumSelbstPatient = 0.0;
-                    $sumKassePatient = 0.0;
-                    ?>
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Datum</th>
-                            <th>Leistung</th>
-                            <th>Arzt</th>
-                            <th>Kostenträger</th>
-                            <th>Betrag</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($invoicePatientData as $row): ?>
-                            <?php
-                            $preis = (float) $row['preis'];
-                            if ($row['kostentraeger'] === 'selbstzahler') {
-                                $sumSelbstPatient += $preis;
-                            } else {
-                                $sumKassePatient += $preis;
-                            }
-                            ?>
-                            <tr>
-                                <td><?= htmlspecialchars($row['datum']) ?></td>
-                                <td><?= htmlspecialchars($row['bezeichnung']) ?></td>
-                                <td><?= htmlspecialchars($row['arzt_name']) ?></td>
-                                <td><?= htmlspecialchars($row['kostentraeger']) ?></td>
-                                <td><?= number_format($preis, 2, ',', '.') ?> €</td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                    <p><strong>Summe Selbstzahler:</strong> <?= number_format($sumSelbstPatient, 2, ',', '.') ?> €</p>
-                    <p><strong>Summe Krankenkasse:</strong> <?= number_format($sumKassePatient, 2, ',', '.') ?> €</p>
-                    <p><strong>Gesamtsumme:</strong> <?= number_format($sumSelbstPatient + $sumKassePatient, 2, ',', '.') ?> €</p>
-                <?php endif; ?>
-            </article>
-        <?php endif; ?>
     </section>
 
     <section class="panel <?= $activeTab === 'patient-hinzufuegen' ? 'show' : '' ?>">
@@ -584,8 +487,101 @@ if ($invoicePatientId > 0) {
                 <?php else: ?>
                     <small>Erledigte Patienten können nicht mehr verschoben werden.</small>
                 <?php endif; ?>
+                <a class="tab" href="?tab=suche&q=<?= urlencode($search) ?>&invoice_patient_id=<?= (int) $patient['patient_ids'][0] ?>">Rechnung Patient</a>
             </article>
         <?php endforeach; ?>
+
+        <?php if ($invoicePatientId > 0): ?>
+            <article class="patient-card stacked">
+                <h3>Rechnung für Patient</h3>
+                <?php if (!$invoicePatientData): ?>
+                    <p>Keine Leistungsdaten gefunden.</p>
+                <?php else: ?>
+                    <p>
+                        <strong>Patient:</strong>
+                        <?= htmlspecialchars($invoicePatientData[0]['vorname'] . ' ' . $invoicePatientData[0]['nachname']) ?>
+                    </p>
+                    <?php
+                    $sumSelbstPatient = 0.0;
+                    $sumKassePatient = 0.0;
+                    ?>
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Leistung</th>
+                            <th>Arzt</th>
+                            <th>Kostenträger</th>
+                            <th>Betrag</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($invoicePatientData as $row): ?>
+                            <?php
+                            $preis = (float) $row['preis'];
+                            if ($row['kostentraeger'] === 'selbstzahler') {
+                                $sumSelbstPatient += $preis;
+                            } else {
+                                $sumKassePatient += $preis;
+                            }
+                            ?>
+                            <tr>
+                                <td><?= htmlspecialchars($row['datum']) ?></td>
+                                <td><?= htmlspecialchars($row['bezeichnung']) ?></td>
+                                <td><?= htmlspecialchars($row['arzt_name']) ?></td>
+                                <td><?= htmlspecialchars($row['kostentraeger']) ?></td>
+                                <td><?= number_format($preis, 2, ',', '.') ?> €</td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <p><strong>Summe Selbstzahler:</strong> <?= number_format($sumSelbstPatient, 2, ',', '.') ?> €</p>
+                    <p><strong>Summe Krankenkasse:</strong> <?= number_format($sumKassePatient, 2, ',', '.') ?> €</p>
+                    <p><strong>Gesamtsumme:</strong> <?= number_format($sumSelbstPatient + $sumKassePatient, 2, ',', '.') ?> €</p>
+                <?php endif; ?>
+            </article>
+        <?php endif; ?>
+    </section>
+
+    <section class="panel <?= $activeTab === 'rechnung' ? 'show' : '' ?>">
+        <h2>Rechnungsliste für alle Patienten (Arzt: <?= htmlspecialchars($user['name']) ?>)</h2>
+        <?php
+        $sumSelbst = 0.0;
+        $sumKasse = 0.0;
+        ?>
+        <table>
+            <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Datum</th>
+                <th>Leistung</th>
+                <th>Kostenträger</th>
+                <th>Betrag</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($invoiceAllData as $row): ?>
+                <?php
+                $preis = (float) $row['preis'];
+                if ($row['kostentraeger'] === 'selbstzahler') {
+                    $sumSelbst += $preis;
+                } else {
+                    $sumKasse += $preis;
+                }
+                ?>
+                <tr>
+                    <td><?= htmlspecialchars($row['vorname'] . ' ' . $row['nachname']) ?></td>
+                    <td><?= htmlspecialchars($row['datum']) ?></td>
+                    <td><?= htmlspecialchars($row['bezeichnung']) ?></td>
+                    <td><?= htmlspecialchars($row['kostentraeger']) ?></td>
+                    <td><?= number_format($preis, 2, ',', '.') ?> €</td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <p><strong>Summe Selbstzahler:</strong> <?= number_format($sumSelbst, 2, ',', '.') ?> €</p>
+        <p><strong>Summe Krankenkasse:</strong> <?= number_format($sumKasse, 2, ',', '.') ?> €</p>
+        <p><strong>Gesamtsumme:</strong> <?= number_format($sumSelbst + $sumKasse, 2, ',', '.') ?> €</p>
     </section>
 </main>
 </body>
